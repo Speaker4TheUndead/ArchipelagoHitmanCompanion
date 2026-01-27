@@ -2,7 +2,7 @@
 
 #include <IPluginInterface.h>
 
-#include <Glacier/SGameUpdateEvent.h>
+#include <Glacier/ZScene.h>
 
 class MyMod : public IPluginInterface {
 public:
@@ -13,7 +13,7 @@ public:
 
 private:
     void OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent);
-    DECLARE_PLUGIN_DETOUR(MyMod, void, OnLoadScene, ZEntitySceneContext* th, ZSceneData& p_SceneData);
+    DECLARE_PLUGIN_DETOUR(MyMod, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters);
 
 private:
     bool m_ShowMessage = false;

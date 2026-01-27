@@ -46,9 +46,9 @@ void MyMod::OnFrameUpdate(const SGameUpdateEvent &p_UpdateEvent) {
     // This function is called every frame while the game is in play mode.
 }
 
-DEFINE_PLUGIN_DETOUR(MyMod, void, OnLoadScene, ZEntitySceneContext* th, ZSceneData& p_SceneData) {
-    Logger::Debug("Loading scene: {}", p_SceneData.m_sceneName);
-    return HookResult<void>(HookAction::Continue());
+DEFINE_PLUGIN_DETOUR(MyMod, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters) {
+    Logger::Debug("Loading scene: {}", p_Parameters.m_SceneResource);
+    return { HookAction::Continue() };
 }
 
 DECLARE_ZHM_PLUGIN(MyMod);

@@ -26,6 +26,7 @@ target_link_libraries(MyMod
     ZHMModSDK
     Microsoft::DirectX-Guids
     Microsoft::DirectX-Headers
+    implot
 )
 
 install(TARGETS MyMod
