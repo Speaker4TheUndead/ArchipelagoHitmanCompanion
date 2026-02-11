@@ -49,7 +49,6 @@ target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE
     # Define any necessary preprocessor definitions here.
     ASIO_STANDALONE
     WIN32_LEAN_AND_MEAN
-    NOMINMAX
     _WEBSOCKETPP_CPP11_STL_
     WSWRAP_NO_SSL
     WSWRAP_NO_COMPRESSION
