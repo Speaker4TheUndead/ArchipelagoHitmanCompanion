@@ -1,3 +1,6 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/Microsoft/vcpkg.git
+[submodule "wswrap"]
+	path = wswrap
+	url = https://github.com/black-sliver/wswrap.git
