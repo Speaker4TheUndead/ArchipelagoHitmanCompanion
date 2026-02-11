@@ -1,4 +1,7 @@
-﻿#include "ArchipelagoHitmanCompanion.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+// ^ To Prevent double winsock and min/max macros from windows.h
+#include "ArchipelagoHitmanCompanion.h"
 
 #include <Logging.h>
 #include <IconsMaterialDesign.h>

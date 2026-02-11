@@ -10,10 +10,6 @@ include(cmake/setup-zhmmodsdk.cmake)
 # Set C++ standard to C++23.
 set(CMAKE_CXX_STANDARD 23)
 
-if(MSVC)
-    add_compile_options(/D_WINSOCK_DEPRECATED_NO_WARNINGS)
-endif()
-
 # Create the ArchipelagoHitmanCompanion mod library.
 add_library(ArchipelagoHitmanCompanion SHARED
     src/ArchipelagoHitmanCompanion.cpp
@@ -47,12 +43,13 @@ target_include_directories(ArchipelagoHitmanCompanion PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp
     ${CMAKE_CURRENT_SOURCE_DIR}/external/asio/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/wswrap/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/external/zlib/include
 )
 
 target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE
     # Define any necessary preprocessor definitions here.
     ASIO_STANDALONE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
     _WEBSOCKETPP_CPP11_STL_
     WSWRAP_NO_SSL
     WSWRAP_NO_COMPRESSION
@@ -60,7 +57,7 @@ target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE
     APCLIENT_DEBUG
 )
 
-target_link_libraries(ArchipelagoHitmanCompanion
+target_link_libraries(ArchipelagoHitmanCompanion PRIVATE
     ZHMModSDK
     Microsoft::DirectX-Guids
     Microsoft::DirectX-Headers
