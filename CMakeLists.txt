@@ -10,6 +10,10 @@ include(cmake/setup-zhmmodsdk.cmake)
 # Set C++ standard to C++23.
 set(CMAKE_CXX_STANDARD 23)
 
+if(MSVC)
+    add_compile_options(/D_WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
+
 # Create the ArchipelagoHitmanCompanion mod library.
 add_library(ArchipelagoHitmanCompanion SHARED
     src/ArchipelagoHitmanCompanion.cpp
