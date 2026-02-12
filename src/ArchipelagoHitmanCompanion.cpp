@@ -1,18 +1,4 @@
-﻿#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-// ^ Can this fix my build in the pipeline?
-
-#include <windows.h>
-
-#include "ArchipelagoHitmanCompanion.h"
+﻿#include "ArchipelagoHitmanCompanion.h"
 
 #include <Logging.h>
 #include <IconsMaterialDesign.h>
