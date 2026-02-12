@@ -91,7 +91,7 @@ target_link_libraries(ArchipelagoHitmanCompanion PRIVATE
     Microsoft::DirectX-Guids
     Microsoft::DirectX-Headers
     implot
-    nlohmann_json::nlohmann_json
+    PRIVATE nlohmann_json::nlohmann_json
 )
 
 install(TARGETS ArchipelagoHitmanCompanion
