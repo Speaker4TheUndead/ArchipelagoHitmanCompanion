@@ -15,7 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 #if defined _WSWRAP_HPP && !defined WSWRAP_SEND_EXCEPTIONS
-#warning "Can't set exception behavior. wswrap already included"
+#pragma message("Can't set exception behavior. wswrap already included")
 #elif !defined WSWRAP_SEND_EXCEPTIONS
 #define WSWRAP_SEND_EXCEPTIONS // backwards compatibility for at least 1 version
 #endif
@@ -65,9 +65,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #ifndef __EMSCRIPTEN__
 #if WSWRAP_VERSION < 10300
-#warning "Please update wswrap to enable compression! Archipelago will require compression in the future."
+#pragma message("Please update wswrap to enable compression! Archipelago will require compression in the future.")
 #elif defined WSWRAP_NO_COMPRESSION
-#warning "Don't disable it in prod! Archipelago will require compression in the future."
+#pragma message("Don't disable it in prod! Archipelago will require compression in the future.")
 #endif
 #endif
 

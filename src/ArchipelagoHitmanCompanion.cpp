@@ -12,6 +12,12 @@
 #include <Glacier/SExternalReferences.h>
 #include <Glacier/ZModule.h>
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 #include <apclient.hpp>
 
 static APClient* g_APClient = NULL;
