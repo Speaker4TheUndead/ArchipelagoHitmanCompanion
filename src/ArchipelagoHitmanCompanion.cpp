@@ -80,7 +80,7 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
             double timestamp = data["time"];
 
             Logger::Info("Received DeathLink from {} with cause '{}'", source, cause);
-			m_DeathlinkPending = true;
+			m_DeathFromDeathLink = true;
 			KillHitman();
         }
 
@@ -160,7 +160,7 @@ void ArchipelagoHitmanCompanion::KillHitman()
         s_ItemSpawner->m_rMainItemKey.m_pInterfaceRef->m_RepositoryId = p_RepositoryId;
         s_ItemSpawner->m_bUsePlacementAttach = false;
         auto hitmanWorldMatrix = s_HitmanSpatialEntity->GetObjectToWorldMatrix();
-		hitmanWorldMatrix.Pos.z += 1.0f; // Raise the item spawner 1 unit above the Hitman
+		hitmanWorldMatrix.Pos.z += 2.0f; // Raise the item spawner 1 unit above the Hitman
         s_ItemSpawner->SetObjectToWorldMatrixFromEditor(hitmanWorldMatrix);
 
         Functions::ZItemSpawner_RequestContentLoad->Call(s_ItemSpawner);
@@ -223,7 +223,7 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
         const auto HM5Health = localHitman.m_pInterfaceRef->m_pHealth;
         const float currentHP = HM5Health->m_fHitPoints;
 		const float maxHP = HM5Health->m_fMaxHitPoints;
-        if (currentHP <= 0.0f && !m_IsHitmanDead && !m_DeathlinkPending) {
+        if (currentHP <= 0.0f && !m_IsHitmanDead && !m_DeathFromDeathLink) {
             Logger::Debug("Hitman Died! with hp of {} out of {}", currentHP, maxHP);
             if (g_APClient && g_APConnected) {
                 auto now = std::chrono::system_clock::now();
@@ -232,10 +232,11 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
                 auto data = nlohmann::json{
                     {"time", nowDouble},
                     {"cause", alias + " got shot a lot."},
-                    {"source", alias + "in HITMAN:WOA" },
+                    {"source", alias + " in HITMAN:WOA" },
                 };
 
-                g_APClient->Bounce(data, {}, {}, { "Deathlink" });
+                g_APClient->Bounce(data, {}, {}, { "DeathLink" });
+                Logger::Debug("Sending Deathlink...");
             }
 			m_IsHitmanDead = true;
         }
@@ -245,7 +246,7 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters) {
     Logger::Debug("Loading scene: {}", p_Parameters.m_SceneResource);
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
-	m_DeathlinkPending = false;
+	m_DeathFromDeathLink = false;
     return { HookAction::Continue() };
 }
 
@@ -253,7 +254,7 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntityScen
     Logger::Debug("Clearing scene.");
 
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
-    m_DeathlinkPending = false;
+    m_DeathFromDeathLink = false;
     return HookResult<void>(HookAction::Continue());
 }
 
