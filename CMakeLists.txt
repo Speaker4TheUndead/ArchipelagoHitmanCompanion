@@ -38,6 +38,17 @@ target_compile_options(ArchipelagoHitmanCompanion PRIVATE
     $<IF:$<OR:$<CXX_COMPILER_ID:MSVC>,$<C_COMPILER_ID:MSVC>>,/bigobj,"">
 )
 
+# find OpenSSL and enable SSL support if found
+find_package(OpenSSL)
+if(OpenSSL_FOUND)
+    target_link_libraries(ArchipelagoHitmanCompanion
+            PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+else()
+    target_compile_definitions(ArchipelagoHitmanCompanion
+            PRIVATE WSWRAP_NO_SSL)
+endif()
+
+
 # find zlib and enable compression support if found
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -68,10 +79,6 @@ target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
     _WEBSOCKETPP_CPP11_STL_
-    WSWRAP_NO_SSL
-    WSWRAP_NO_COMPRESSION
-    AP_PREFER_UNENCRYPTED
-    APCLIENT_DEBUG
 )
 
 target_link_libraries(ArchipelagoHitmanCompanion PRIVATE
@@ -80,6 +87,10 @@ target_link_libraries(ArchipelagoHitmanCompanion PRIVATE
     Microsoft::DirectX-Headers
     implot
     PRIVATE nlohmann_json::nlohmann_json
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ZLIB::ZLIB
+    crypt32
 )
 
 install(TARGETS ArchipelagoHitmanCompanion

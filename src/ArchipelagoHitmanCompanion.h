@@ -21,7 +21,7 @@ private:
 private:
     bool m_ShowMessage = false;
 	bool m_IsHitmanDead = false;
-	bool m_DeathlinkPending = false;
+	bool m_DeathFromDeathLink = false;
 	char m_APServerAddressInput[2000] = "localhost:";
 	char m_APSlotNameInput[2000] = "Henry";
 	char m_APPasswordInput[2000] = "";
