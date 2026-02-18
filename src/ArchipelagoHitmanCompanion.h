@@ -6,6 +6,9 @@
 
 class ArchipelagoHitmanCompanion : public IPluginInterface {
 public:
+	const ZString connectionSettingsSection = "connectionsettings";
+	const ZString serverAddressSettingName = "serveraddress";
+	const ZString slotNameSettingName = "slotname";
     void OnEngineInitialized() override;
     ~ArchipelagoHitmanCompanion() override;
     void OnDrawMenu() override;
@@ -15,6 +18,8 @@ public:
 
 private:
     void OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent);
+    void LoadConnectionSettings();
+	void SaveConnectionSettings();
     DECLARE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters);
 	DECLARE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntitySceneContext* th, bool bFullyUnloadScene);
 
@@ -22,8 +27,8 @@ private:
     bool m_ShowMessage = false;
 	bool m_IsHitmanDead = false;
 	bool m_DeathFromDeathLink = false;
-	char m_APServerAddressInput[2000] = "localhost:";
-	char m_APSlotNameInput[2000] = "Henry";
+	char m_APServerAddressInput[2000] = "localhost:38281";
+	char m_APSlotNameInput[2000] = "Player";
 	char m_APPasswordInput[2000] = "";
     const char m_GameName[30] = "HITMAN World of Assassination";
 };
