@@ -41,6 +41,8 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
         {
             Logger::Info("Connected to Archipelago server!");
             g_APConnected = true;
+            
+            SaveConnectionSettings(); // Save the successful connection settings to file, so they can be loaded automatically next time the user starts the game.
         });
 
     g_APClient->set_room_info_handler([&roomInfo, this]() {
@@ -55,6 +57,7 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
     g_APClient->set_socket_error_handler([&error](const std::string& msg) {
         Logger::Error("Error making Archipelago connection {}", msg);
         error = true;
+		g_APConnected = false;
         });
 
     g_APClient->set_socket_disconnected_handler([]()
@@ -94,8 +97,6 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
 
 void DisconnectFromArchipelago()
 {
-    if (!g_APClient)
-        return;
     g_APConnected = false;
     if (g_APClient) {
         g_APClient.reset(nullptr);
@@ -224,6 +225,9 @@ void ArchipelagoHitmanCompanion::KillHitman()
 void ArchipelagoHitmanCompanion::OnEngineInitialized() {
     Logger::Info("ArchipelagoHitmanCompanion has been initialized!");
 
+	// Load the last successful connection settings from file, so the user doesn't have to re-enter them every time they start the game.
+	LoadConnectionSettings();
+
     // Register a function to be called on every game frame while the game is in play mode.
     const ZMemberDelegate<ArchipelagoHitmanCompanion, void(const SGameUpdateEvent&)> s_Delegate(this, &ArchipelagoHitmanCompanion::OnFrameUpdate);
     Globals::GameLoopManager->RegisterFrameUpdate(s_Delegate, 1, EUpdateMode::eUpdatePlayMode);
@@ -249,11 +253,12 @@ void ArchipelagoHitmanCompanion::OnDrawMenu() {
 void ArchipelagoHitmanCompanion::OnDrawUI(bool p_HasFocus) {
     if (m_ShowMessage) {
         // Show a window for our mod.
+		ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("ArchipelagoHitmanCompanion", &m_ShowMessage)) {
-			ImGui::InputText("Server Address", m_APServerAddressInput, sizeof(m_APServerAddressInput));
-			ImGui::InputText("Slot Name", m_APSlotNameInput, sizeof(m_APSlotNameInput));
-            ImGui::InputText("Password", m_APPasswordInput, sizeof(m_APPasswordInput));
             if(!g_APConnected){
+                ImGui::InputText("Server Address", m_APServerAddressInput, sizeof(m_APServerAddressInput));
+                ImGui::InputText("Slot Name", m_APSlotNameInput, sizeof(m_APSlotNameInput));
+                ImGui::InputText("Password", m_APPasswordInput, sizeof(m_APPasswordInput));
                 if (ImGui::Button("Connect")) {
                     ConnectToArchipelago();
                 }
