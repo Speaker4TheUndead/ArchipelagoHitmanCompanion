@@ -19,8 +19,9 @@
 #undef max
 #endif
 #include <apclient.hpp>
+#include <memory>
 
-static APClient* g_APClient = NULL;
+static std::unique_ptr<APClient> g_APClient;
 static std::atomic<bool> g_APConnected = false;
 
 void ArchipelagoHitmanCompanion::ConnectToArchipelago()
@@ -34,7 +35,7 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
 
     Logger::Info("Starting client for {}...", m_APServerAddressInput);
 
-    g_APClient = new APClient("", m_GameName, m_APServerAddressInput);
+    g_APClient = std::make_unique<APClient>("", m_GameName, m_APServerAddressInput);
 
     g_APClient->set_socket_connected_handler([this]()
         {
@@ -63,6 +64,10 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
         {
             g_APConnected = false;
         });
+
+    g_APClient->set_print_json_handler([this](const std::list<APClient::TextNode>& msg) {
+            m_MessageLog.AddMessage(g_APClient->render_json(msg, APClient::RenderFormat::TEXT));
+		});
 
     g_APClient->set_bounced_handler([&](nlohmann::json packet) {
         std::list<std::string> tags = packet["tags"];
@@ -94,9 +99,54 @@ void DisconnectFromArchipelago()
 {
     g_APConnected = false;
     if (g_APClient) {
-        delete g_APClient;
-        g_APClient = NULL;
+        g_APClient.reset(nullptr);
 	}
+}
+
+void ArchipelagoHitmanCompanion::DrawLogWindow() {
+    if (!m_ShowLogWindow) {
+        return;
+    }
+
+    ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize;
+
+	ImGuiIO& io = ImGui::GetIO();
+
+    const float windowWidth = 500.0f;
+    const float windowHeight = 300.0f;
+    const float margin = 20.0f;
+
+    ImVec2 windowPos(
+        io.DisplaySize.x - windowWidth - margin,
+        margin
+    );
+
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight), ImGuiCond_Always);
+
+    if (ImGui::Begin("Archipelago Log", nullptr, flags)) {
+        ImGui::PushTextWrapPos(0.0f);
+
+        for (const auto& msg : m_MessageLog.GetMessages()) {
+            ImGui::TextUnformatted(msg.text.c_str());
+        }
+        ImGui::PopTextWrapPos();
+
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+            ImGui::SetScrollHereY(1.0f);
+        }
+    }
+
+    ImGui::End();
+}
+
+void MessageLog::AddMessage(const std::string& msg) {
+    messages.emplace_back(LogMessage{ msg });
+}
+
+const std::vector<LogMessage>& MessageLog::GetMessages() const {
+    return messages;
 }
 
 void ArchipelagoHitmanCompanion::KillHitman()
@@ -218,11 +268,19 @@ void ArchipelagoHitmanCompanion::OnDrawUI(bool p_HasFocus) {
                     DisconnectFromArchipelago();
                 }
             }
+            if (ImGui::Checkbox("Show Log Window", &m_ShowLogWindow)) {
+                Logger::Debug("Log Window {}", (m_ShowLogWindow ? "Enabled" : "Disabled"));
+            }
+
 			/*if (ImGui::Button(ICON_MD_HEART_BROKEN " Suicide")) {
 				KillHitman();
             }*/
         }
         ImGui::End();
+    }
+
+    if (m_ShowLogWindow) {
+		DrawLogWindow();
     }
 }
 
