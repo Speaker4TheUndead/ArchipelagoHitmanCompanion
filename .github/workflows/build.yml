@@ -56,13 +56,13 @@ jobs:
     - name: Archive debug
       uses: actions/upload-artifact@v4
       with:
-        name: MyMod-Debug
+        name: ArchipelagoHitmanCompanion-Debug
         path: _dist-debug/*
 
     - name: Archive release
       uses: actions/upload-artifact@v4
       with:
-        name: MyMod-Release
+        name: ArchipelagoHitmanCompanion-Release
         path: _dist-release/*
 
   upload_release:
@@ -75,21 +75,21 @@ jobs:
     - name: Download debug artifact
       uses: actions/download-artifact@v4
       with:
-        name: MyMod-Debug
-        path: MyMod-Debug
+        name: ArchipelagoHitmanCompanion-Debug
+        path: ArchipelagoHitmanCompanion-Debug
 
     - name: Download release artifact
       uses: actions/download-artifact@v4
       with:
-        name: MyMod-Release
-        path: MyMod-Release
+        name: ArchipelagoHitmanCompanion-Release
+        path: ArchipelagoHitmanCompanion-Release
 
     - name: Archive artifact files
       run: |
-        cd MyMod-Debug
-        zip -r MyMod-Debug.zip *
-        cd ../MyMod-Release
-        zip -r MyMod-Release.zip *
+        cd ArchipelagoHitmanCompanion-Debug
+        zip -r ArchipelagoHitmanCompanion-Debug.zip *
+        cd ../ArchipelagoHitmanCompanion-Release
+        zip -r ArchipelagoHitmanCompanion-Release.zip *
         
     - name: Get release
       id: get_release
@@ -103,8 +103,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: MyMod-Debug/MyMod-Debug.zip
-        asset_name: MyMod-Debug.zip
+        asset_path: ArchipelagoHitmanCompanion-Debug/ArchipelagoHitmanCompanion-Debug.zip
+        asset_name: ArchipelagoHitmanCompanion-Debug.zip
         asset_content_type: application/zip
 
     - name: Upload release assets
@@ -113,7 +113,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: MyMod-Release/MyMod-Release.zip
-        asset_name: MyMod-Release.zip
+        asset_path: ArchipelagoHitmanCompanion-Release/ArchipelagoHitmanCompanion-Release.zip
+        asset_name: ArchipelagoHitmanCompanion-Release.zip
         asset_content_type: application/zip
 
