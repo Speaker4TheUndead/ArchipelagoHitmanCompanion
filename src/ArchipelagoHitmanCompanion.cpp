@@ -369,7 +369,7 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple
         bool s_ContractFailed =
             s_EventStr.find("\"Name\":\"ContractFailed\"") != std::string::npos;
 
-        if (s_ContractFailed && !m_MissionFailureDetected)
+        if (s_ContractFailed && !m_MissionFailureDetected && !m_DeathFromDeathLink)
         {
             // Filter out legitimate player actions
             // Load game, restart level, and replan level should NOT trigger deathlink
