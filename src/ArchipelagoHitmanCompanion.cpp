@@ -233,12 +233,12 @@ void ArchipelagoHitmanCompanion::SendDeathLink() {
         auto alias = g_APClient->get_player_alias(g_APClient->get_player_number());
         auto data = nlohmann::json{
             {"time", nowDouble},
-            {"cause", alias + " got shot a lot."},
+            {"cause", alias + " failed the mission."},
             {"source", alias + " in HITMAN:WOA" },
         };
 
         g_APClient->Bounce(data, {}, {}, { "DeathLink" });
-        Logger::Debug("Sending Deathlink...");
+        Logger::Info("[ArchipelagoHitmanCompanion] Sending mission failure DeathLink...");
     }
 }
 
@@ -322,21 +322,6 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
     if (g_APClient) {
         g_APClient->poll();
     }
-
-    /*auto localHitman = SDK()->GetLocalPlayer();
-    if(localHitman.m_pInterfaceRef){
-        const auto HM5Health = localHitman.m_pInterfaceRef->m_pHealth;
-        const float currentHP = HM5Health->m_fHitPoints;
-		const float maxHP = HM5Health->m_fMaxHitPoints;
-        if (currentHP <= 0.0f && !m_IsHitmanDead && !m_DeathFromDeathLink) {
-            Logger::Debug("Hitman Died! with hp of {} out of {}", currentHP, maxHP);
-            SendDeathLink();
-			m_IsHitmanDead = true;
-        }
-    }*/
-	//if (MissionFailure()) {
-	//	SendDeathLink();
-	//}
 }
 
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters) {
@@ -366,8 +351,6 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntityScen
 // HookAction::Return() simply stops the game from dispatching it, with none of
 // the WinHTTP-corruption problems of short-circuiting WinHttpSendRequest.
 //
-// This is the PRIMARY protection point for block-only mode and an early,
-// reliable trigger for auto-kill.
 // -----------------------------------------------------------------------------
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple_OnEventSent,
     ZAchievementManagerSimple* th, uint32_t eventIndex, const ZDynamicObject& event)
@@ -388,23 +371,20 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple
 
         if (s_ContractFailed && !m_MissionFailureDetected)
         {
+            // Filter out legitimate player actions
+            // Load game, restart level, and replan level should NOT trigger deathlink
+            if (s_EventStr.find("OnLoadGame") != std::string::npos
+                || s_EventStr.find("OnRestartLevel") != std::string::npos
+                || s_EventStr.find("OnReplanLevel") != std::string::npos)
+            {
+                Logger::Info("[ArchipelagoHitmanCompanion] ContractFailed is a manual action (load/restart/replan) — ignoring.");
+                return HookAction::Continue();
+            }
+
             Logger::Info("[ArchipelagoHitmanCompanion] MISSION FAILURE DETECTED!");
             m_MissionFailureDetected = true;
 
-            if (g_APClient && g_APConnected)
-            {
-                auto now = std::chrono::system_clock::now();
-                double nowDouble = (double)std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000;
-                auto alias = g_APClient->get_player_alias(g_APClient->get_player_number());
-                auto data = nlohmann::json{
-                    {"time", nowDouble},
-                    {"cause", alias + " failed the mission."},
-                    {"source", alias + " in HITMAN:WOA"}
-                };
-
-                g_APClient->Bounce(data, {}, {}, { "DeathLink" });
-                Logger::Info("[ArchipelagoHitmanCompanion] Sending mission failure DeathLink...");
-            }
+            SendDeathLink();
         }
     }
 
