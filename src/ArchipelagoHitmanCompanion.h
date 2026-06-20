@@ -1,7 +1,6 @@
 #pragma once
 
 #include <IPluginInterface.h>
-
 #include <Glacier/ZScene.h>
 
 struct LogMessage {
@@ -28,17 +27,19 @@ public:
     void ConnectToArchipelago();
     void KillHitman();
     void DrawLogWindow();
-
+    bool MissionFailure();
+    void SendDeathLink();
 private:
     void OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent);
     void LoadConnectionSettings();
 	void SaveConnectionSettings();
     DECLARE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters);
 	DECLARE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntitySceneContext* th, bool bFullyUnloadScene);
-
+    DECLARE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple_OnEventSent, ZAchievementManagerSimple* th, uint32_t eventIndex, const ZDynamicObject& event);
 private:
     bool m_ShowMessage = false;
 	bool m_IsHitmanDead = false;
+    bool m_MissionFailureDetected = false;
 	bool m_DeathFromDeathLink = false;
     bool m_ShowLogWindow = false;
 	char m_APServerAddressInput[2000] = "localhost:38281";

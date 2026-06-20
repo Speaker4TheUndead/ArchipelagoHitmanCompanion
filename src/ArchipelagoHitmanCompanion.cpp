@@ -74,7 +74,7 @@ void ArchipelagoHitmanCompanion::ConnectToArchipelago()
 
         bool deathlink = (std::find(tags.begin(), tags.end(), "DeathLink") != tags.end());
 
-        if (deathlink) {
+        if (deathlink && !m_MissionFailureDetected) {
             auto data = packet["data"];
             std::string cause = "";
             if (data.contains("cause")) {
@@ -222,6 +222,26 @@ void ArchipelagoHitmanCompanion::KillHitman()
     }
 }
 
+bool ArchipelagoHitmanCompanion::MissionFailure() {
+	return m_IsHitmanDead && !m_DeathFromDeathLink;
+}
+
+void ArchipelagoHitmanCompanion::SendDeathLink() {
+    if (g_APClient && g_APConnected) {
+        auto now = std::chrono::system_clock::now();
+        double nowDouble = (double)std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000;
+        auto alias = g_APClient->get_player_alias(g_APClient->get_player_number());
+        auto data = nlohmann::json{
+            {"time", nowDouble},
+            {"cause", alias + " failed the mission."},
+            {"source", alias + " in HITMAN:WOA" },
+        };
+
+        g_APClient->Bounce(data, {}, {}, { "DeathLink" });
+        Logger::Info("[ArchipelagoHitmanCompanion] Sending mission failure DeathLink...");
+    }
+}
+
 void ArchipelagoHitmanCompanion::OnEngineInitialized() {
     Logger::Info("ArchipelagoHitmanCompanion has been initialized!");
 
@@ -231,10 +251,10 @@ void ArchipelagoHitmanCompanion::OnEngineInitialized() {
     // Register a function to be called on every game frame while the game is in play mode.
     const ZMemberDelegate<ArchipelagoHitmanCompanion, void(const SGameUpdateEvent&)> s_Delegate(this, &ArchipelagoHitmanCompanion::OnFrameUpdate);
     Globals::GameLoopManager->RegisterFrameUpdate(s_Delegate, 1, EUpdateMode::eUpdatePlayMode);
-
     // Install a hook to print the name of the scene every time the game loads a new one.
     Hooks::ZEntitySceneContext_LoadScene->AddDetour(this, &ArchipelagoHitmanCompanion::OnLoadScene);
     Hooks::ZEntitySceneContext_ClearScene->AddDetour(this, &ArchipelagoHitmanCompanion::OnClearScene);
+    Hooks::ZAchievementManagerSimple_OnEventSent->AddDetour(this, &ArchipelagoHitmanCompanion::ZAchievementManagerSimple_OnEventSent);
 }
 
 ArchipelagoHitmanCompanion::~ArchipelagoHitmanCompanion() {
@@ -302,36 +322,13 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
     if (g_APClient) {
         g_APClient->poll();
     }
-
-    auto localHitman = SDK()->GetLocalPlayer();
-    if(localHitman.m_pInterfaceRef){
-        const auto HM5Health = localHitman.m_pInterfaceRef->m_pHealth;
-        const float currentHP = HM5Health->m_fHitPoints;
-		const float maxHP = HM5Health->m_fMaxHitPoints;
-        if (currentHP <= 0.0f && !m_IsHitmanDead && !m_DeathFromDeathLink) {
-            Logger::Debug("Hitman Died! with hp of {} out of {}", currentHP, maxHP);
-            if (g_APClient && g_APConnected) {
-                auto now = std::chrono::system_clock::now();
-                double nowDouble = (double)std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000;
-                auto alias = g_APClient->get_player_alias(g_APClient->get_player_number());
-                auto data = nlohmann::json{
-                    {"time", nowDouble},
-                    {"cause", alias + " got shot a lot."},
-                    {"source", alias + " in HITMAN:WOA" },
-                };
-
-                g_APClient->Bounce(data, {}, {}, { "DeathLink" });
-                Logger::Debug("Sending Deathlink...");
-            }
-			m_IsHitmanDead = true;
-        }
-    }
 }
 
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters) {
     Logger::Debug("Loading scene: {}", p_Parameters.m_SceneResource);
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
 	m_DeathFromDeathLink = false;
+    m_MissionFailureDetected = false;
     return { HookAction::Continue() };
 }
 
@@ -340,7 +337,58 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntityScen
 
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
     m_DeathFromDeathLink = false;
+    m_MissionFailureDetected = false;
     return HookResult<void>(HookAction::Continue());
+}
+
+
+// -----------------------------------------------------------------------------
+// ZAchievementManagerSimple_OnEventSent
+//
+// Fires when the game dispatches an online event (kills, mission outcomes,
+// Elusive Target results, etc.) BEFORE it is batched into an HTTP request.  This
+// is the SDK-sanctioned, crash-safe place to suppress an event: returning
+// HookAction::Return() simply stops the game from dispatching it, with none of
+// the WinHTTP-corruption problems of short-circuiting WinHttpSendRequest.
+//
+// -----------------------------------------------------------------------------
+DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple_OnEventSent,
+    ZAchievementManagerSimple* th, uint32_t eventIndex, const ZDynamicObject& event)
+{
+    std::string s_EventStr;
+    if (Functions::ZDynamicObject_ToString && Functions::ZDynamicObject_ToString->Exists())
+    {
+        ZString s_Json;
+        Functions::ZDynamicObject_ToString->Call(const_cast<ZDynamicObject*>(&event), s_Json);
+        s_EventStr.assign(s_Json.c_str(), s_Json.size());
+    }
+
+    if (!s_EventStr.empty())
+    {
+        // Check for ContractFailed event
+        bool s_ContractFailed =
+            s_EventStr.find("\"Name\":\"ContractFailed\"") != std::string::npos;
+
+        if (s_ContractFailed && !m_MissionFailureDetected)
+        {
+            // Filter out legitimate player actions
+            // Load game, restart level, and replan level should NOT trigger deathlink
+            if (s_EventStr.find("OnLoadGame") != std::string::npos
+                || s_EventStr.find("OnRestartLevel") != std::string::npos
+                || s_EventStr.find("OnReplanLevel") != std::string::npos)
+            {
+                Logger::Info("[ArchipelagoHitmanCompanion] ContractFailed is a manual action (load/restart/replan) — ignoring.");
+                return HookAction::Continue();
+            }
+
+            Logger::Info("[ArchipelagoHitmanCompanion] MISSION FAILURE DETECTED!");
+            m_MissionFailureDetected = true;
+
+            SendDeathLink();
+        }
+    }
+
+    return HookAction::Continue();
 }
 
 DECLARE_ZHM_PLUGIN(ArchipelagoHitmanCompanion);
