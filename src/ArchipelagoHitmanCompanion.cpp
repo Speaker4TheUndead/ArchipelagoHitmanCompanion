@@ -375,7 +375,8 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, ZAchievementManagerSimple
             // Load game, restart level, and replan level should NOT trigger deathlink
             if (s_EventStr.find("OnLoadGame") != std::string::npos
                 || s_EventStr.find("OnRestartLevel") != std::string::npos
-                || s_EventStr.find("OnReplanLevel") != std::string::npos)
+                || s_EventStr.find("OnReplanLevel") != std::string::npos
+                || s_EventStr.find("exit to Main menu") != std::string::npos)
             {
                 Logger::Info("[ArchipelagoHitmanCompanion] ContractFailed is a manual action (load/restart/replan) — ignoring.");
                 return HookAction::Continue();
