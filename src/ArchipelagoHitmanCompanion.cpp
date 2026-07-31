@@ -229,9 +229,9 @@ void ArchipelagoHitmanCompanion::OnDrawUI(bool p_HasFocus) {
                 Logger::Debug("Log Window {}", (m_ShowLogWindow ? "Enabled" : "Disabled"));
             }
 
-			if (ImGui::Button(ICON_MD_HEART_BROKEN " Suicide")) {
+			/*if (ImGui::Button(ICON_MD_HEART_BROKEN " Suicide")) {
 				KillHitman();
-            }
+            }*/
         }
         ImGui::End();
     }
