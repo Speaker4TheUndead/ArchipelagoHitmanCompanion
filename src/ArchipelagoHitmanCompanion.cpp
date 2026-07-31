@@ -151,75 +151,11 @@ const std::vector<LogMessage>& MessageLog::GetMessages() const {
 
 void ArchipelagoHitmanCompanion::KillHitman()
 {
-    auto localHitman = SDK()->GetLocalPlayer();
-
-    if(localHitman.m_pInterfaceRef){
-        const ZRepositoryID p_RepositoryId = ZRepositoryID("af8a7b6c-692c-4a76-b9bc-2b91ce32bcbc");
-
-        const auto s_Scene = Globals::Hitman5Module->m_pEntitySceneContext->m_pScene;
-
-        const auto s_ID = ResId<"[modules:/zitemspawner.class].pc_entitytype">;
-        const auto s_ID2 = ResId<"[modules:/zitemrepositorykeyentity.class].pc_entitytype">;
-
-        TResourcePtr<ZTemplateEntityFactory> s_Resource, s_Resource2;
-
-        Globals::ResourceManager->GetResourcePtr(s_Resource, s_ID, 0);
-        Globals::ResourceManager->GetResourcePtr(s_Resource2, s_ID2, 0);
-
-        Logger::Debug("Resource: {} {}", s_Resource.m_nResourceIndex.val, fmt::ptr(s_Resource.GetResource()));
-
-        if (!s_Resource) {
-            Logger::Debug("Resource is not loaded.");
-            return;
-        }
-
-        ZEntityRef s_NewEntity, s_NewEntity2;
-        SExternalReferences s_ExternalRefs;
-
-        Functions::ZEntityManager_NewEntity->Call(
-            Globals::EntityManager,
-            s_NewEntity,
-            "",
-            s_Resource,
-            s_Scene.m_entityRef,
-            s_ExternalRefs,
-            -1
-        );
-
-        Functions::ZEntityManager_NewEntity->Call(
-            Globals::EntityManager,
-            s_NewEntity2,
-            "",
-            s_Resource2,
-            s_Scene.m_entityRef,
-            s_ExternalRefs,
-            -1
-        );
-
-        if (!s_NewEntity) {
-            Logger::Debug("Failed to spawn entity.");
-            return;
-        }
-
-        if (!s_NewEntity2) {
-            Logger::Debug("Failed to spawn entity2.");
-            return;
-        }
-
-        const auto s_HitmanSpatialEntity = localHitman.m_entityRef.QueryInterface<ZSpatialEntity>();
-        const auto s_ItemSpawner = s_NewEntity.QueryInterface<ZItemSpawner>();
-
-        s_ItemSpawner->m_ePhysicsMode = ZItemSpawner::EPhysicsMode::EPM_DYNAMIC;
-        s_ItemSpawner->m_rMainItemKey.m_entityRef = s_NewEntity2;
-        s_ItemSpawner->m_rMainItemKey.m_pInterfaceRef = s_NewEntity2.QueryInterface<ZItemRepositoryKeyEntity>();
-        s_ItemSpawner->m_rMainItemKey.m_pInterfaceRef->m_RepositoryId = p_RepositoryId;
-        s_ItemSpawner->m_bUsePlacementAttach = false;
-        auto hitmanWorldMatrix = s_HitmanSpatialEntity->GetObjectToWorldMatrix();
-		hitmanWorldMatrix.Pos.z += 2.0f; // Raise the item spawner 1 unit above the Hitman
-        s_ItemSpawner->SetObjectToWorldMatrixFromEditor(hitmanWorldMatrix);
-
-        Functions::ZItemSpawner_RequestContentLoad->Call(s_ItemSpawner);
+    if (!m_PlayerExplodeEffect.Available()) {
+        m_PlayerExplodeEffect.LoadResources();
     }
+
+	m_PlayerExplodeEffect.Start();
 }
 
 bool ArchipelagoHitmanCompanion::MissionFailure() {
@@ -259,6 +195,7 @@ void ArchipelagoHitmanCompanion::OnEngineInitialized() {
 
 ArchipelagoHitmanCompanion::~ArchipelagoHitmanCompanion() {
     // Unregister our frame update function when the mod unloads.
+
     const ZMemberDelegate<ArchipelagoHitmanCompanion, void(const SGameUpdateEvent&)> s_Delegate(this, &ArchipelagoHitmanCompanion::OnFrameUpdate);
     Globals::GameLoopManager->UnregisterFrameUpdate(s_Delegate, 1, EUpdateMode::eUpdatePlayMode);
 }
@@ -292,9 +229,9 @@ void ArchipelagoHitmanCompanion::OnDrawUI(bool p_HasFocus) {
                 Logger::Debug("Log Window {}", (m_ShowLogWindow ? "Enabled" : "Disabled"));
             }
 
-			/*if (ImGui::Button(ICON_MD_HEART_BROKEN " Suicide")) {
+			if (ImGui::Button(ICON_MD_HEART_BROKEN " Suicide")) {
 				KillHitman();
-            }*/
+            }
         }
         ImGui::End();
     }
@@ -326,6 +263,7 @@ void ArchipelagoHitmanCompanion::OnFrameUpdate(const SGameUpdateEvent &p_UpdateE
 
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntitySceneContext* th, SSceneInitParameters& p_Parameters) {
     Logger::Debug("Loading scene: {}", p_Parameters.m_SceneResource);
+    
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
 	m_DeathFromDeathLink = false;
     m_MissionFailureDetected = false;
@@ -334,7 +272,7 @@ DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, bool, OnLoadScene, ZEntityScene
 
 DEFINE_PLUGIN_DETOUR(ArchipelagoHitmanCompanion, void, OnClearScene, ZEntitySceneContext* th, bool) {
     Logger::Debug("Clearing scene.");
-
+    m_PlayerExplodeEffect.OnClearScene();
     if (m_IsHitmanDead) { m_IsHitmanDead = false; }
     m_DeathFromDeathLink = false;
     m_MissionFailureDetected = false;
