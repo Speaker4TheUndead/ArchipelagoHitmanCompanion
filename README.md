@@ -5,23 +5,31 @@ This is ArchipelagoHitmanCompanion, a mod for Hitman WOA!
 ## Description
 This mod is intended to be used in tandem with [BenDipp's Archipelago Implementation](https://github.com/BenDipp/Archipelago/blob/hitman_woa/worlds/hitman_woa/docs/setup_en.md) to support the DeathLink feature in Archipelago runs.
 
+## Requirements
+- [ZHMModSDK](https://github.com/OrfeasZ/ZHMModSDK)
+- [Simple Mod Framework](https://github.com/atampy25/simple-mod-framework)
+- [ZHMChaosModCompanion](https://github.com/shadow578/ZHMChaosModCompanion)
+
 ## Installation
-To install this mod you'll need to first install the latest [ZHMModSDK](https://github.com/OrfeasZ/ZHMModSDK) for Hitman:WOA. Once that is installed download the latest release of ArchipelagoHitmanCompanion from [Releases](https://github.com/Speaker4TheUndead/ArchipelagoHitmanCompanion/releases). 
-1. Extract the contents of the release into your mods directory. 
-2. Once Hitman:WOA is booted press the '~' key and enable `ArchipelagoHitmanCompanion` from the menu at the top of the screen (you may need to restart your game afterwards).
-3. If the mod loaded correctly, there should be a new menu at the top of the screen titled ArchipelagoHitmanCompanion. Click that. (I recommend doing this once in game and not within the main menu.)
-4. In the window that appears enter your connection settings and press connect. (Optionally click the checkbox to enable the LogWindow to see Archipelago Server messages within the Hitman:WOA game.)
-5. Enjoy sending and receiving deathlink to/from your friends!
+1. To install this mod you'll need to first install the latest [ZHMModSDK](https://github.com/OrfeasZ/ZHMModSDK) for Hitman:WOA.
+2. Install ZHMChaosModCompanion using the Simple Mod Framework.
+3. Download the latest release of ArchipelagoHitmanCompanion from [Releases](https://github.com/Speaker4TheUndead/ArchipelagoHitmanCompanion/releases). 
+4. Extract the contents of the release into your mods directory. 
+5. Once Hitman:WOA is booted press the '~' key and enable `ArchipelagoHitmanCompanion` from the menu at the top of the screen (you may need to restart your game afterwards).
+6. If the mod loaded correctly, there should be a new menu at the top of the screen titled ArchipelagoHitmanCompanion. Click that. (I recommend doing this once in game and not within the main menu.)
+7. In the window that appears enter your connection settings and press connect. (Optionally click the checkbox to enable the LogWindow to see Archipelago Server messages within the Hitman:WOA game.)
+8. Enjoy sending and receiving deathlink to/from your friends!
 
 ## Playing via source code
 
 1. Clone the source of [ZHMModSDK](https://github.com/OrfeasZ/ZHMModSDK), build and install it. See [here](https://github.com/OrfeasZ/ZHMModSDK/wiki/Building-&-debugging-the-SDK) (Latest confirmed working commit: 3d80fdd80b63298564f212107590f10698af18e0 )
-2. Clone this repository and configure it's ZHMMODSDK_DIR setting to direct to your local ZHMSource. See [here](https://github.com/OrfeasZ/ZHMModSDK/wiki/Developing-a-mod-with-a-local-version-of-the-SDK)
-3. Build and install. See [here](https://github.com/OrfeasZ/ZHMModSDK/wiki/Setting-up-Visual-Studio-for-development).
-4. Once Hitman:WOA is booted press the '~' key and enable `ArchipelagoHitmanCompanion` from the menu at the top of the screen (you may need to restart your game afterwards).
-5. If the mod loaded correctly, there should be a new menu at the top of the screen titled ArchipelagoHitmanCompanion. Click that. (I recommend doing this once in game and not within the main menu.)
-6. In the window that appears enter your connection settings and press connect. (Optionally click the checkbox to enable the LogWindow to see Archipelago Server messages within the Hitman:WOA game.)
-7. Enjoy sending and receiving deathlink to/from your friends!
+2. Install ZHMChaosModCompanion using the Simple Mod Framework. 
+3. Clone this repository and configure it's ZHMMODSDK_DIR setting to direct to your local ZHMSource. See [here](https://github.com/OrfeasZ/ZHMModSDK/wiki/Developing-a-mod-with-a-local-version-of-the-SDK)
+4. Build and install. See [here](https://github.com/OrfeasZ/ZHMModSDK/wiki/Setting-up-Visual-Studio-for-development).
+5. Once Hitman:WOA is booted press the '~' key and enable `ArchipelagoHitmanCompanion` from the menu at the top of the screen (you may need to restart your game afterwards).
+6. If the mod loaded correctly, there should be a new menu at the top of the screen titled ArchipelagoHitmanCompanion. Click that. (I recommend doing this once in game and not within the main menu.)
+7. In the window that appears enter your connection settings and press connect. (Optionally click the checkbox to enable the LogWindow to see Archipelago Server messages within the Hitman:WOA game.)
+8. Enjoy sending and receiving deathlink to/from your friends!
 
 (I recommend enabling the NoPause Mod aswell if you intend to be alt tabbing between windows as there is an issue with connection to the Archipelago Server disconnecting if the game is paused.)
 <!--
@@ -39,6 +47,9 @@ You can either use `git clone --recurse-submodules` or run `git submodule update
 ### 2. Install Visual Studio (any edition).
 
 Make sure you install the C++ and game development workloads.
+
+------
+Big thanks and credits to shadow578 for making the ZHMChaosMod source that I've pulled for this. 
 
 ### 3. Open the project in your IDE of choice.
 
