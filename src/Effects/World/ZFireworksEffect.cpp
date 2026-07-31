@@ -1,0 +1,132 @@
+#include "ZFireworksEffect.h"
+
+#include <imgui.h>
+
+#include <Glacier/ZSpatialEntity.h>
+
+#include "Registry.h"
+#include "Helpers/EntityUtils.h"
+#include "Helpers/PlayerUtils.h"
+#include "Entity/EntityIds.h"
+
+void ZFireworksEffect::LoadResources()
+{
+    m_pFireworksSpawner = ZTemplateEntitySpawner::Create<"[assembly:/_pro/effects/templates/fire/fx_fireworks.template?/fx_fireworks_launchpad.entitytemplate].pc_entitytype">();
+}
+
+void ZFireworksEffect::OnClearScene()
+{
+    m_pFireworksSpawner = nullptr;
+    m_rFireworksEntity = {};
+}
+
+bool ZFireworksEffect::Available() const
+{
+    return IChaosEffect::Available() && m_pFireworksSpawner && m_pFireworksSpawner->IsAvailable();
+}
+
+void ZFireworksEffect::OnDrawDebugUI()
+{
+    ImGui::TextUnformatted(fmt::format("Prop: {}", m_pFireworksSpawner->ToString()).c_str());
+}
+
+void ZFireworksEffect::Start()
+{
+    auto s_rFireworksBarge = m_pFireworksSpawner->Spawn();
+    if (!s_rFireworksBarge)
+    {
+        return;
+    }
+
+    // aquire refs to sub-entities
+    ZEntityRef s_rFireworksFXEntity,
+        s_rSwirlMachine1, s_rSwirlMachine2,
+        s_rTimer0, s_rTimer1, s_rTimer2, s_rTimer3;
+    if (auto* s_pBlueprint = s_rFireworksBarge.GetBlueprintFactory())
+    {
+        // Fireworks
+        s_rFireworksFXEntity = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::Fireworks, s_pBlueprint);
+
+        // firework_swirlmachine_a
+        s_rSwirlMachine1 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::FireworkSwirlMachine1, s_pBlueprint);
+
+        // firework_swirlmachine_a01
+        s_rSwirlMachine2 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::FireworkSwirlMachine2, s_pBlueprint);
+
+        // TimerSimple
+        s_rTimer0 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::TimerSimple, s_pBlueprint);
+
+        // TimerSimple01
+        s_rTimer1 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::TimerSimple01, s_pBlueprint);
+
+        // TimerSimple02
+        s_rTimer2 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::TimerSimple02, s_pBlueprint);
+
+        // TimerSimple03
+        s_rTimer3 = Utils::GetSubEntity(s_rFireworksBarge, EntityId::HM3::FXFireworksLaunchpad::TimerSimple03, s_pBlueprint);
+    }
+    if (!s_rFireworksFXEntity)
+    {
+        // only FX entity is essential, the rest is added bonuses
+        return;
+    }
+
+    // detach FX entity from barge and move barge out of sight
+    Utils::SetProperty<ZEntityRef>(s_rFireworksFXEntity, "m_eidParent", ZEntityRef{});
+    Utils::SetProperty<bool>(s_rFireworksBarge, "m_bVisible", false);
+    if (auto* s_pBargeSpatial = s_rFireworksBarge.QueryInterface<ZSpatialEntity>())
+    {
+        SMatrix s_mWorldAway;
+        s_mWorldAway.Trans.z -= 1000;
+        s_pBargeSpatial->SetObjectToWorldMatrixFromEditor(s_mWorldAway);
+    }
+
+    // hide swirlmachines (yes, IOI calls them that...)
+    // not deparenting to also hide trails
+    Utils::SetProperty<bool>(s_rSwirlMachine1, "m_bVisible", false);
+    Utils::SetProperty<bool>(s_rSwirlMachine2, "m_bVisible", false);
+
+    // speed up timers to make more fireworks appear
+    const std::string c_sDelayName = "Delay time (ms)";
+    if (auto s_nDelay = Utils::GetProperty<int32>(s_rTimer0, c_sDelayName))
+    {
+        Utils::SetProperty<int32>(s_rTimer0, c_sDelayName, *s_nDelay / 2);
+    }
+    if (auto s_nDelay = Utils::GetProperty<int32>(s_rTimer1, c_sDelayName))
+    {
+        Utils::SetProperty<int32>(s_rTimer1, c_sDelayName, *s_nDelay / 2);
+    }
+    if (auto s_nDelay = Utils::GetProperty<int32>(s_rTimer2, c_sDelayName))
+    {
+        Utils::SetProperty<int32>(s_rTimer2, c_sDelayName, *s_nDelay / 2);
+    }
+    if (auto s_nDelay = Utils::GetProperty<int32>(s_rTimer3, c_sDelayName))
+    {
+        Utils::SetProperty<int32>(s_rTimer3, c_sDelayName, *s_nDelay / 2);
+    }
+
+    // move FX to player
+    if (auto s_rFireworksFXSpatial = TEntityRef<ZSpatialEntity>(s_rFireworksFXEntity))
+    {
+        SMatrix s_mPlayerTransform;
+        if (Utils::GetPlayerTransform(s_mPlayerTransform))
+        {
+            s_rFireworksFXSpatial.m_pInterfaceRef->SetObjectToWorldMatrixFromEditor(s_mPlayerTransform);
+        }
+    }
+
+    // go!
+    s_rFireworksFXEntity.SignalInputPin("Activate");
+    m_rFireworksEntity = s_rFireworksFXEntity;
+}
+
+void ZFireworksEffect::Stop()
+{
+    if (m_rFireworksEntity)
+    {
+        m_rFireworksEntity.SignalInputPin("Deactivate");
+        m_rFireworksEntity = {};
+    }
+}
+
+REGISTER_CHAOS_EFFECT(ZFireworksEffect);

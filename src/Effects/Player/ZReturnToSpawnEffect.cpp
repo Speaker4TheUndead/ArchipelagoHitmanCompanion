@@ -1,0 +1,81 @@
+#include "ZReturnToSpawnEffect.h"
+
+#include <Logging.h>
+#include <imgui.h>
+
+#include <Glacier/ZEntity.h>
+#include <Glacier/ZSpatialEntity.h>
+
+#include "Registry.h"
+#include "Helpers/EntityUtils.h"
+#include "Helpers/PlayerUtils.h"
+#include "Helpers/Math2.h"
+
+#define TAG "[ZReturnToSpawnEffect] "
+
+void ZReturnToSpawnEffect::OnEnterScene()
+{
+    m_aSpawnPoints.clear();
+
+    const auto s_aStartingLocations = Utils::ZEntityFinder()
+                                          .EntityType("ZHeroSpawn")
+                                          .Find();
+    if (s_aStartingLocations.empty())
+    {
+        return;
+    }
+
+    for (const auto& s_StartingLocation : s_aStartingLocations)
+    {
+        // attempt to get position property first
+        auto s_rPosition = Utils::GetProperty<TEntityRef<ZSpatialEntity>>(s_StartingLocation, "m_rPosition").value_or({});
+        if (!s_rPosition)
+        {
+            // if that fails, fall back to the spatial entity of the location itself
+            s_rPosition = TEntityRef<ZSpatialEntity>(s_StartingLocation);
+            if (!s_rPosition)
+            {
+                // give up
+                continue;
+            }
+        }
+
+        m_aSpawnPoints.push_back(s_rPosition.m_pInterfaceRef->GetObjectToWorldMatrix());
+    }
+
+    Logger::Debug(TAG "Found {} spawn points.", m_aSpawnPoints.size());
+}
+
+void ZReturnToSpawnEffect::OnClearScene()
+{
+    m_aSpawnPoints.clear();
+}
+
+bool ZReturnToSpawnEffect::Available() const
+{
+    return IChaosEffect::Available() && !m_aSpawnPoints.empty();
+}
+
+void ZReturnToSpawnEffect::Start()
+{
+    const auto s_SpawnPoint = Math2::SelectRandomElement(m_aSpawnPoints);
+    Utils::TeleportPlayer(s_SpawnPoint);
+}
+
+void ZReturnToSpawnEffect::OnDrawDebugUI()
+{
+    ImGui::TextUnformatted(fmt::format("# Spawn Points: {}", m_aSpawnPoints.size()).c_str());
+
+    int i = 0;
+    for (const auto& s_SpawnPoint : m_aSpawnPoints)
+    {
+        if (ImGui::Button(fmt::format("[{}]", i).c_str()))
+        {
+            Utils::TeleportPlayer(s_SpawnPoint);
+        }
+
+        i++;
+    }
+}
+
+REGISTER_CHAOS_EFFECT(ZReturnToSpawnEffect)

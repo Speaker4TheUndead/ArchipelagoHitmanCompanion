@@ -1,0 +1,34 @@
+#pragma once
+
+#include "IChaosEffect.h"
+
+class ZLagEffect : public IChaosEffect
+{
+  public:
+    ZLagEffect(const float32 p_fTargetFPS)
+        : m_fTargetFPS(p_fTargetFPS)
+    {
+    }
+
+    void Start() override;
+    void Stop() override;
+    void OnFrameUpdate(const SGameUpdateEvent& p_UpdateEvent, const float32 p_fEffectTimeRemaining) override;
+    void OnDrawDebugUI() override;
+
+    std::string GetDisplayName(const bool p_bVoting) const override
+    {
+        return "Console Experience";
+    }
+
+    EDuration GetDuration() const override
+    {
+        return EDuration::Short; // painful!
+    }
+
+    void LoadConfiguration(const ZConfigurationAccessor* p_pConfiguration) override;
+    void DrawConfigUI(ZConfigurationAccessor* p_pConfiguration) override;
+
+  private:
+    float32 m_fTargetFPS;
+    bool m_bEnabled = false;
+};

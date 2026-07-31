@@ -1,7 +1,8 @@
 #pragma once
-
+#include "Registry.h"
 #include <IPluginInterface.h>
 #include <Glacier/ZScene.h>
+#include <Effects/Player/ZPlayerExplode.h>
 
 struct LogMessage {
     std::string text;
@@ -45,6 +46,7 @@ private:
 	char m_APServerAddressInput[2000] = "localhost:38281";
 	char m_APSlotNameInput[2000] = "Player";
 	char m_APPasswordInput[2000] = "";
+	ZPlayerExplode m_PlayerExplodeEffect;
     const char m_GameName[30] = "HITMAN World of Assassination";
     MessageLog m_MessageLog;
 };
