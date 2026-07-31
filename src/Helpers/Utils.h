@@ -1,0 +1,49 @@
+#pragma once
+
+#include <string>
+
+namespace Utils
+{
+    /**
+     * Cast data without checks or conversions.
+     */
+    template <typename T>
+    static T* CastRaw(void* p_pData)
+    {
+        return reinterpret_cast<T*>(p_pData);
+    }
+
+    /**
+     * Check if a pointer is a instance of a class.
+     * @template Base Class to check if instance of.
+     * @template T input type
+     * @param p_pObj Object pointer to check.
+     */
+    template <typename Base, typename T>
+    static bool IsInstanceOf(const T* p_pObj)
+    {
+        return dynamic_cast<const Base*>(p_pObj) != nullptr;
+    }
+
+    /**
+     * Copy a string to the system clipboard.
+     * @param p_sData Data to copy.
+     */
+    void CopyToClipboard(const std::string& p_sData);
+
+    /**
+     * Open a URL in the default browser
+     */
+    void OpenBrowser(const std::string& p_sUrl);
+
+    /**
+     * Get a timestamp in seconds.
+     * the timestamp is guranteed to be monotonic increasing, but may not represent wall-clock time.
+     */
+    uint64_t GetTimestamp();
+
+    /**
+     * Convert a string to lowercase, without modifying the input string.
+     */
+    std::string ToLower(const std::string& p_sInput);
+}; // namespace Utils

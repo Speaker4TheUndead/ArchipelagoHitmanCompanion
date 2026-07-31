@@ -1,0 +1,104 @@
+#include "ZRGBLightsEffect.h"
+
+#include <Logging.h>
+#include <imgui.h>
+
+#include "Registry.h"
+#include "ZConfigurationAccessor.h"
+#include "Helpers/EntityUtils.h"
+#include "Helpers/Math2.h"
+
+#define TAG "[ZRGBLightsEffect] "
+
+void ZRGBLightsEffect::OnEnterScene()
+{
+    m_aLights.clear();
+
+    const auto s_aLightEntities = Utils::ZEntityFinder()
+                                      .EntityType("ZLightEntity")
+                                      .Find();
+
+    for (auto& s_rLightEntity : s_aLightEntities)
+    {
+        // exclude environmental and area lights
+        const auto s_eType = Utils::GetProperty<ILightEntity_ELightType>(s_rLightEntity, "m_eLightType");
+        if (s_eType == ILightEntity_ELightType::LT_DIRECTIONAL || s_eType == ILightEntity_ELightType::LT_OMNI || s_eType == ILightEntity_ELightType::LT_SPOT || s_eType == ILightEntity_ELightType::LT_SQUARESPOT)
+        {
+            m_aLights.push_back(SLightEntityInfo(s_rLightEntity));
+        }
+    }
+
+    Logger::Debug(TAG "Found {} light entities!", m_aLights.size());
+}
+
+void ZRGBLightsEffect::OnClearScene()
+{
+    m_aLights.clear();
+}
+
+bool ZRGBLightsEffect::Available() const
+{
+    return IChaosEffect::Available() && !m_aLights.empty();
+}
+
+void ZRGBLightsEffect::Start()
+{
+    m_bActive = true;
+    m_fTimeElapsed = 0.0f;
+    m_fTimeToNextChange = 0.0f;
+}
+
+void ZRGBLightsEffect::Stop()
+{
+    m_bActive = false;
+
+    for (auto& s_LightInfo : m_aLights)
+    {
+        s_LightInfo.Restore();
+    }
+}
+
+void ZRGBLightsEffect::OnSlowUpdate(const float32 p_fDeltaTime, const float32 p_fEffectTimeRemaining)
+{
+    if (!m_bActive)
+    {
+        return;
+    }
+
+    m_fTimeElapsed += p_fDeltaTime;
+    m_fTimeToNextChange -= p_fDeltaTime;
+    if (m_fTimeToNextChange > 0.0f)
+    {
+        return;
+    }
+
+    // set global color with random brightness per light
+    const SColorRGB s_Color = Math2::GetRainbowColor(m_fTimeElapsed, 0.0f);
+    for (auto& s_LightInfo : m_aLights)
+    {
+        const float32 s_Brightness = m_bReducedBrightness ? Math2::GetRandomNumber(100.0f, 600.0f)
+                                                          : Math2::GetRandomNumber(400.0f, 1500.0f);
+        s_LightInfo.Apply(true, s_Brightness, s_Color);
+    }
+
+    m_fTimeToNextChange = Math2::GetRandomNumber(0.1f, 0.3f);
+}
+
+void ZRGBLightsEffect::LoadConfiguration(const ZConfigurationAccessor* p_pConfiguration)
+{
+    IChaosEffect::LoadConfiguration(p_pConfiguration);
+
+    m_bReducedBrightness = p_pConfiguration->GetBool("ReduceBrightness", m_bReducedBrightness);
+}
+
+void ZRGBLightsEffect::DrawConfigUI(ZConfigurationAccessor* p_pConfiguration)
+{
+    IChaosEffect::DrawConfigUI(p_pConfiguration);
+
+    if (ImGui::Checkbox("Reduce Brightness", &m_bReducedBrightness))
+    {
+        p_pConfiguration->SetBool("ReduceBrightness", m_bReducedBrightness);
+    }
+}
+
+REGISTER_CHAOS_EFFECT(ZRGBLightsEffect)

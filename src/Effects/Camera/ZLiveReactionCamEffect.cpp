@@ -1,0 +1,172 @@
+#include "ZLiveReactionCamEffect.h"
+
+#include <imgui.h>
+
+#include <Glacier/ZResourceID.h>
+#include <Glacier/CompileReflection.h>
+
+#include "Registry.h"
+#include "Helpers/ActorUtils.h"
+#include "Helpers/PlayerUtils.h"
+#include "Helpers/EntityUtils.h"
+
+#include "Entity/Bindings/SPIPCameraCustomEventBinding.h"
+#include "Entity/EntityIds.h"
+
+void ZLiveReactionCamEffect::LoadResources()
+{
+    m_pPIPCameraSpawner = ZTemplateEntitySpawner::Create<"[assembly:/_pro/design/templates/camera/pictureinpicture.template?/pip_camera_custom_event.entitytemplate].pc_entitytype">();
+
+    if (m_bTargetPlayer)
+    {
+        m_pHudMessageResource = ZResourceProvider::Create<"[assembly:/_pro/chaosmod/localization/ui/hud_pip_livereaction/player.sweetline].pc_sweetline">();
+    }
+    else
+    {
+        m_pHudMessageResource = ZResourceProvider::Create<"[assembly:/_pro/chaosmod/localization/ui/hud_pip_livereaction/actor.sweetline].pc_sweetline">();
+    }
+}
+
+void ZLiveReactionCamEffect::OnClearScene()
+{
+    m_pPIPCameraSpawner = nullptr;
+    m_pHudMessageResource = nullptr;
+}
+
+bool ZLiveReactionCamEffect::Available() const
+{
+    return IChaosEffect::Available() && m_pPIPCameraSpawner && m_pPIPCameraSpawner->IsAvailable() && m_pHudMessageResource && m_pHudMessageResource->IsAvailable();
+}
+
+void ZLiveReactionCamEffect::OnDrawDebugUI()
+{
+    ImGui::TextUnformatted(fmt::format("PIP Cam: {}", m_pPIPCameraSpawner->ToString()).c_str());
+    ImGui::TextUnformatted(fmt::format("Sweetline: {}", m_pHudMessageResource->ToString()).c_str());
+}
+
+bool ZLiveReactionCamEffect::IsCompatibleWith(const IChaosEffect* p_pOther) const
+{
+    return IChaosEffect::IsCompatibleWith(p_pOther) && !Utils::IsInstanceOf<ZLiveReactionCamEffect>(p_pOther);
+}
+
+void ZLiveReactionCamEffect::Start()
+{
+    // avoid multiple
+    if (m_rPIPCameraEntity)
+    {
+        Stop();
+    }
+
+    // get head of target (actor or player)
+    auto s_rTargetHead = m_bTargetPlayer ? GetPlayerHeadAttachEntity() : GetRandomActorHeadAttachEntity();
+    if (!s_rTargetHead)
+    {
+        return;
+    }
+
+    SpawnLiveReactionCam(s_rTargetHead, m_pHudMessageResource->GetResourceID(), ZPIPMessageEntity_EIcon::Target);
+
+    // activate the PIP camera
+    if (m_rPIPCameraEntity)
+    {
+        SPIPCameraCustomEventBindingBinding s_PIPCamera(m_rPIPCameraEntity);
+        s_PIPCamera.Activate();
+    }
+}
+
+void ZLiveReactionCamEffect::Stop()
+{
+    if (!m_rPIPCameraEntity)
+    {
+        return;
+    }
+
+    // deactivate PIP before despawning
+    SPIPCameraCustomEventBindingBinding s_PIPCamera(m_rPIPCameraEntity);
+    s_PIPCamera.Deactivate();
+
+    m_pPIPCameraSpawner->Despawn(m_rPIPCameraEntity);
+    m_rPIPCameraEntity = {};
+}
+
+TEntityRef<ZSpatialEntity> ZLiveReactionCamEffect::GetRandomActorHeadAttachEntity()
+{
+    const auto s_rActor = Utils::GetRandomActor(true);
+    if (!s_rActor)
+    {
+        return {};
+    }
+
+    return Utils::GetActorHeadAttachEntity(s_rActor);
+}
+
+TEntityRef<ZSpatialEntity> ZLiveReactionCamEffect::GetPlayerHeadAttachEntity()
+{
+    const auto s_rPlayer = Utils::GetLocalPlayer();
+    if (!s_rPlayer)
+    {
+        return {};
+    }
+
+    return Utils::GetPlayerHeadAttachEntity(s_rPlayer);
+}
+
+void ZLiveReactionCamEffect::SpawnLiveReactionCam(TEntityRef<ZSpatialEntity> p_rTargetHead, const ZRuntimeResourceID p_HudMessageId, const ZPIPMessageEntity_EIcon p_eIcon)
+{
+    if (!p_rTargetHead)
+    {
+        return;
+    }
+
+    // get PIP camera
+    m_rPIPCameraEntity = m_pPIPCameraSpawner->Spawn();
+    if (!m_rPIPCameraEntity)
+    {
+        return;
+    }
+
+    SPIPCameraCustomEventBindingBinding s_PIPCamera(m_rPIPCameraEntity);
+
+    // move relative to head, with a local offset and rotation
+    // QNE offset:
+    // P: 0.055 0.700 0.000
+    // R: 90.00 90.00 0.000
+    //
+    // x offset (0.055) needed since head pivot is roughly at the neck, but we want head center
+    // y offset (0.700) to be a bit in front of the face
+    s_PIPCamera.m_eidParent = p_rTargetHead;
+
+    SMatrix43 s_mLocalTransform;
+    s_mLocalTransform.XAxis = {0.000f, -0.000f, 1.000f};
+    s_mLocalTransform.YAxis = {1.000f, 0.000f, -0.000f};
+    s_mLocalTransform.ZAxis = {-0.000f, 1.000f, 0.000f};
+    s_mLocalTransform.Trans = {0.055f, 0.700f, 0.000};
+    s_PIPCamera.m_mTransform = s_mLocalTransform;
+
+    // prevent PIP view from automatically closing after timer (we do it manually)
+    s_PIPCamera.m_bValueusepiptimer = false;
+
+    // take highes PIP priority so it overrides other PIP cameras
+    s_PIPCamera.m_nValuePiPPriority = 9999;
+
+    // mess with the camera properties to do a funny
+    s_PIPCamera.m_bAutoAspect = false; // manual aspect
+    s_PIPCamera.m_fAspectWByH = 0.8f;  // stretch horizontally
+    s_PIPCamera.m_fFovYDeg = 20.0f;    // really zoom in on the face
+
+    // the PIP view needs a HUD message, otherwise only the camera feed shows
+    s_PIPCamera.m_rHUDMessagepip = p_HudMessageId;
+
+    s_PIPCamera.m_eIcon = p_eIcon;
+
+    // by default, the PIP is automatically closed when looking at it (via look-at trigger)
+    // there's no direct way to disable this, but we can manipulate the look-at trigger to effectively never trigger
+    if (auto s_rLookAtTrigger = Utils::GetSubEntity(m_rPIPCameraEntity, EntityId::HM3::PiPCameraCustomEvent::LookAtTrigger))
+    {
+        Utils::SetProperty<int32>(s_rLookAtTrigger, "m_nTriggerCount", 0);
+        Utils::SetProperty<float32>(s_rLookAtTrigger, "m_fTriggerDelay", 9999.0f);
+    }
+}
+
+REGISTER_CHAOS_EFFECT_PARAM(Actor, ZLiveReactionCamEffect, false);
+REGISTER_CHAOS_EFFECT_PARAM(Player, ZLiveReactionCamEffect, true);

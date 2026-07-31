@@ -24,48 +24,45 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio json websocketpp wswrap)
 
-
 # Set C++ standard to C++23.
 set(CMAKE_CXX_STANDARD 23)
 
-# Create the ArchipelagoHitmanCompanion mod library.
-add_library(ArchipelagoHitmanCompanion SHARED
-    src/ArchipelagoHitmanCompanion.cpp
-    src/ArchipelagoHitmanCompanion.h
+# Glob all source files from main directory and Effects subdirectory only
+# (excluding Voting since we don't need it)
+file(GLOB_RECURSE SRC_FILES
+        CONFIGURE_DEPENDS
+        src/ArchipelagoHitmanCompanion.cpp
+        src/ArchipelagoHitmanCompanion.h
+        src/Effects/*.cpp
+        src/Effects/*.h
+        src/Unlockers/*.cpp
+        src/Unlockers/*.h
+        src/Registry.cpp
+        src/Registry.h
+        src/ZConfigurationAccessor.cpp
+        src/ZConfigurationAccessor.h
+        src/Entity/*.cpp
+        src/Entity/*.h
+        src/Helpers/*.cpp
+        src/Helpers/*.h
 )
+
+list(FILTER SRC_FILES EXCLUDE REGEX ".*/src/Helpers/UpdateCheck/.*")
+
+# Create the ArchipelagoHitmanCompanion mod library.
+add_library(ArchipelagoHitmanCompanion SHARED ${SRC_FILES})
 
 target_compile_options(ArchipelagoHitmanCompanion PRIVATE
     $<IF:$<OR:$<CXX_COMPILER_ID:MSVC>,$<C_COMPILER_ID:MSVC>>,/bigobj,"">
 )
 
-# find OpenSSL and enable SSL support if found
-find_package(OpenSSL)
-if(OpenSSL_FOUND)
-    target_link_libraries(ArchipelagoHitmanCompanion
-            PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-else()
-    target_compile_definitions(ArchipelagoHitmanCompanion
-            PRIVATE WSWRAP_NO_SSL)
-endif()
-
-
-# find zlib and enable compression support if found
-find_package(ZLIB)
-if(ZLIB_FOUND)
-    target_link_libraries(ArchipelagoHitmanCompanion PRIVATE ZLIB::ZLIB)
-else()
-    target_compile_definitions(ArchipelagoHitmanCompanion
-            PRIVATE WSWRAP_NO_COMPRESSION)
-endif()
-
-
-# Set UTF-8 flag.
-set_target_properties(ArchipelagoHitmanCompanion PROPERTIES COMPILE_FLAGS "/utf-8")
-
-# Add SDK and DX headers dependencies.
-find_package(directx-headers CONFIG REQUIRED)
-
+# Include directories for subdirectories
 target_include_directories(ArchipelagoHitmanCompanion PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Effects
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Entity
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Unlockers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Helpers
     ${CMAKE_CURRENT_SOURCE_DIR}/external/apclientpp/
     ${CMAKE_CURRENT_SOURCE_DIR}/external/valijson/include
     PRIVATE "${wswrap_SOURCE_DIR}/include"
@@ -73,8 +70,28 @@ target_include_directories(ArchipelagoHitmanCompanion PRIVATE
     PRIVATE ${websocketpp_SOURCE_DIR}
 )
 
+# Set UTF-8 flag
+set_target_properties(ArchipelagoHitmanCompanion PROPERTIES COMPILE_FLAGS "/utf-8")
+
+# Add SDK and DX headers dependencies
+find_package(directx-headers CONFIG REQUIRED)
+
+# OpenSSL and compression support (from your original setup)
+find_package(OpenSSL)
+if(OpenSSL_FOUND)
+    target_link_libraries(ArchipelagoHitmanCompanion PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+else()
+    target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE WSWRAP_NO_SSL)
+endif()
+
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    target_link_libraries(ArchipelagoHitmanCompanion PRIVATE ZLIB::ZLIB)
+else()
+    target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE WSWRAP_NO_COMPRESSION)
+endif()
+
 target_compile_definitions(ArchipelagoHitmanCompanion PRIVATE
-    # Define any necessary preprocessor definitions here.
     ASIO_STANDALONE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
@@ -86,7 +103,7 @@ target_link_libraries(ArchipelagoHitmanCompanion PRIVATE
     Microsoft::DirectX-Guids
     Microsoft::DirectX-Headers
     implot
-    PRIVATE nlohmann_json::nlohmann_json
+    nlohmann_json::nlohmann_json
     OpenSSL::SSL
     OpenSSL::Crypto
     ZLIB::ZLIB
