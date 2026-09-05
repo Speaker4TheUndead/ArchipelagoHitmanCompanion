@@ -51,7 +51,7 @@ void ZForceForwardMovementEffect::Stop()
     m_bEnable = false;
 }
 
-DEFINE_PLUGIN_DETOUR(ZForceForwardMovementEffect, double, OnInputActionAnalog, ZInputAction* th, int a2)
+DEFINE_PLUGIN_DETOUR(ZForceForwardMovementEffect, float, OnInputActionAnalog, ZInputAction* th, int a2)
 {
     if (m_bEnable)
     {
@@ -62,12 +62,12 @@ DEFINE_PLUGIN_DETOUR(ZForceForwardMovementEffect, double, OnInputActionAnalog, Z
             // so we need to unpack and repack to/from float32.
             auto s_fValue = 1.0f;
 
-            auto s_fValueReturn = *Utils::CastRaw<float64>(&s_fValue);
-            return {HookAction::Return(), s_fValueReturn};
+            //auto s_fValueReturn = *Utils::CastRaw<double>(&s_fValue);
+            return {HookAction::Return(), s_fValue};
         }
     }
 
-    return HookResult<float64>(HookAction::Continue());
+    return HookResult<float>(HookAction::Continue());
 }
 
 REGISTER_CHAOS_EFFECT(ZForceForwardMovementEffect)

@@ -184,7 +184,7 @@ ZPlayerTeleportMovementEffect::ETeleportResult ZPlayerTeleportMovementEffect::Pe
     return ETeleportResult::SUCCESS;
 }
 
-DEFINE_PLUGIN_DETOUR(ZPlayerTeleportMovementEffect, double, OnInputActionAnalog, ZInputAction* th, int a2)
+DEFINE_PLUGIN_DETOUR(ZPlayerTeleportMovementEffect, float, OnInputActionAnalog, ZInputAction* th, int a2)
 {
     if (m_eState != EState::DISABLED)
     {
@@ -210,12 +210,12 @@ DEFINE_PLUGIN_DETOUR(ZPlayerTeleportMovementEffect, double, OnInputActionAnalog,
             // disable all movement via inputs while active
             s_fValue = 0.0f;
 
-            auto s_fValueReturn = *Utils::CastRaw<float64>(&s_fValue);
-            return {HookAction::Return(), s_fValueReturn};
+            //auto s_fValueReturn = *Utils::CastRaw<float64>(&s_fValue);
+            return {HookAction::Return(), s_fValue};
         }
     }
 
-    return HookResult<float64>(HookAction::Continue());
+    return HookResult<float>(HookAction::Continue());
 }
 
 std::string_view ZPlayerTeleportMovementEffect::StateToName(const EState p_eState)
